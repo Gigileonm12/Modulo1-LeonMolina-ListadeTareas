@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task Board ✨</title>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 40px;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      color: #3a3a3a;
+      margin-bottom: 30px;
+    }
+
+    .botones {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #ffb347;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #ffa726;
+    }
+
+    .contenedor-tabla {
+      max-width: 800px;
+      margin: 0 auto;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
+
+    tr.completada td {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+
+    .acciones button {
+      margin-right: 10px;
+      background-color: #eee;
+      color: #555;
+      border-radius: 6px;
+    }
+
+    .acciones button:hover {
+      background-color: #ccc;
+    }
+
+    .mensaje {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #d1fae5;
+      padding: 15px 25px;
+      border-radius: 12px;
+      color: #0f766e;
+      font-weight: bold;
+      display: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌟 Task Board</h1>
+
+  <div class="botones">
+    <button onclick="agregarTarea()">Agregar Tarea</button>
+  </div>
+
+  <div class="contenedor-tabla">
+    <table id="tabla-tareas">
+      <thead>
+        <tr>
+          <th>Tarea</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="mensaje" id="mensaje">🎉 ¡Tarea completada con éxito!</div>
+
+  <script>
+    let tareas = [];
+
+    $(document).ready(function () {
+      cargarTareas();
+
+      $("#tabla-tareas tbody").sortable({
+        update: function () {
+          actualizarStorageDesdeTabla();
+        }
+      }).disableSelection();
+    });
+
+    function agregarTarea() {
+      const contenido = prompt("Escribe la tarea:");
+      if (!contenido) return;
+
+      const tarea = { contenido, completada: false };
+      tareas.push(tarea);
+      guardarTareas();
+      renderizarTareas();
+    }
+
+    function renderizarTareas() {
+      const tbody = $('#tabla-tareas tbody');
+      tbody.empty();
+
+      const pendientes = tareas.filter(t => !t.completada);
+      const completadas = tareas.filter(t => t.completada);
+
+      [...pendientes, ...completadas].forEach(tarea => {
+        const tr = $('<tr></tr>');
+        if (tarea.completada) tr.addClass('completada');
+
+        tr.append(`<td>${tarea.contenido}</td>`);
+        tr.append(`<td>${tarea.completada ? '✔️ Completada' : 'Pendiente'}</td>`);
+
+        const acciones = $('<td class="acciones"></td>');
+
+        if (!tarea.completada) {
+          const btnCompletar = $('<button>✅</button>');
+          btnCompletar.click(() => {
+            tarea.completada = true;
+            guardarTareas();
+            renderizarTareas();
+            mostrarMensaje();
+          });
+          acciones.append(btnCompletar);
+        }
+
+        const btnEliminar = $('<button>🗑️</button>');
+        btnEliminar.click(() => {
+          tareas = tareas.filter(t => t !== tarea);
+          guardarTareas();
+          renderizarTareas();
+        });
+
+        acciones.append(btnEliminar);
+        tr.append(acciones);
+        tbody.append(tr);
+      });
+    }
+
+    function cargarTareas() {
+      tareas = JSON.parse(localStorage.getItem('tareas')) || [];
+      renderizarTareas();
+    }
+
+    function guardarTareas() {
+      localStorage.setItem('tareas', JSON.stringify(tareas));
+    }
+
+    function actualizarStorageDesdeTabla() {
+      const nuevasTareas = [];
+      $('#tabla-tareas tbody tr').each(function () {
+        const contenido = $(this).find('td').eq(0).text().trim();
+        const completada = $(this).hasClass('completada');
+        nuevasTareas.push({ contenido, completada });
+      });
+      tareas = nuevasTareas;
+      guardarTareas();
+    }
+
+    function mostrarMensaje() {
+      $('#mensaje').fadeIn(200);
+      setTimeout(() => $('#mensaje').fadeOut(300), 2500);
+    }
+  </script>
+
+</body>
+</html>
